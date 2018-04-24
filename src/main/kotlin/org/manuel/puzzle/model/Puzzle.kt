@@ -7,6 +7,7 @@ class Puzzle(val centerRows: Int, val rowsFromCenter: Int, val preFilled: List<S
     var hexagonList: MutableList<MutableList<Hexagon>> = mutableListOf()
     var centerRow = rowsFromCenter
     val random = Random()
+    val moves: MutableList<String> = arrayListOf()
 
     init {
 
@@ -55,7 +56,6 @@ class Puzzle(val centerRows: Int, val rowsFromCenter: Int, val preFilled: List<S
         if (isLastElementInRow(currentHexagon) && isMovingRight(direction)) {
             return null
         }
-
 
         try {
             if (currentHexagon.row <= centerRow && isMovingUp(direction)) {
@@ -158,6 +158,21 @@ class Puzzle(val centerRows: Int, val rowsFromCenter: Int, val preFilled: List<S
         return solved
     }
 
+    fun spotsOpen(): Int {
+        var count = 0
+        var available = 0
+        this.hexagonList.forEach {
+            it.forEach {
+                if (it.filled) {
+                    count++
+                }
+                available++
+            }
+        }
+
+        return available - count
+    }
+
     fun reset() {
 
         hexagonList.forEach {
@@ -173,26 +188,29 @@ class Puzzle(val centerRows: Int, val rowsFromCenter: Int, val preFilled: List<S
     }
 
     fun solve() {
-        var rowStart: Int = randNum(0, this.hexagonList.size)
-        var row = this.hexagonList[rowStart]
-        var startPosition = randNum(0, row.size)
-        var currentHexagon: Hexagon = row[startPosition]
+
+        var currentHexagon: Hexagon = randomHexagonNotFilled()
         currentHexagon.filled = true
-        var moves: MutableList<String> = arrayListOf()
 
         var directionsTried = mutableMapOf(1 to false, 2 to false, 3 to false, 4 to false, 5 to false, 6 to false)
-        moves.add("R${rowStart + 1}P$startPosition")
         while (true) {
 
             if (!triedAllDirections(directionsTried)) {
                 val direction = randomDirectionNotTried(directionsTried)
 
-                val moveTo = this.moveToPosition(direction, currentHexagon)
+                var moveTo = this.moveToPosition(direction, currentHexagon)
+
                 if (moveTo != null) {
-                    moves.add("R${moveTo.row}P${moveTo.position}-D$direction")
-                    moveTo.filled = true
+                    do {
+                        if (moveTo != null) {
+                            moveTo.filled = true
+                            moves.add("R${moveTo.row}P${moveTo.position}-D$direction")
+                            currentHexagon = moveTo
+                            moveTo = this.moveToPosition(direction, currentHexagon)
+                        }
+                    } while(moveTo != null)
+
                     directionsTried = mutableMapOf(1 to false, 2 to false, 3 to false, 4 to false, 5 to false, 6 to false)
-                    currentHexagon = moveTo
                 }
 
             }
@@ -200,25 +218,44 @@ class Puzzle(val centerRows: Int, val rowsFromCenter: Int, val preFilled: List<S
             if (this.isSolved()) {
                 println("solved!")
                 println(moves)
+                return
             }
 
             if (!this.isSolved() && triedAllDirections(directionsTried) || this.isSolved()) {
+                if (spotsOpen() < 9) {
+                    println("starting over [moves=${moves.size}][spots open=${spotsOpen()}")
+                    println("     ${moves}")
+                }
 
                 this.reset()
                 directionsTried = mutableMapOf(1 to false, 2 to false, 3 to false, 4 to false, 5 to false, 6 to false)
 
 
-                rowStart = randNum(0, this.hexagonList.size)
-                row = this.hexagonList[rowStart]
-                startPosition = randNum(0, row.size)
-                currentHexagon = row[startPosition]
+                currentHexagon = randomHexagonNotFilled()
                 currentHexagon.filled = true
-                moves.clear()
-                moves.add("R${rowStart}P${startPosition}")
             }
         }
 
 
+    }
+
+    fun randomHexagonNotFilled(): Hexagon {
+        moves.clear()
+        var rowStart = randNum(0, this.hexagonList.size)
+        var row = this.hexagonList[rowStart]
+        var position = randNum(0, row.size)
+        while (!isFilled(rowStart, position)) {
+            rowStart = randNum(0, this.hexagonList.size)
+            row = this.hexagonList[rowStart]
+            position = randNum(0, row.size)
+        }
+
+        moves.add("R${rowStart}P$position")
+        return row[position]
+    }
+
+    fun isFilled(row: Int, position: Int): Boolean {
+        return this.preFilled != null && preFilled.contains("${row}${position}")
     }
 
     fun randomDirectionNotTried(directions: MutableMap<Int, Boolean>): Int {
@@ -241,9 +278,12 @@ class Puzzle(val centerRows: Int, val rowsFromCenter: Int, val preFilled: List<S
 }
 
 fun main(args: Array<String>) {
-    val puzzle = Puzzle(6, 3, listOf("30", "31", "32", "34", "35"))
+//    val puzzle = Puzzle(9, 4)
+    val puzzle = Puzzle(9, 4, listOf("01", "02", "03", "14", "31", "70", "71", "82"))
+
     puzzle.hexagonList.map { println(it) }
     puzzle.solve()
+
 
 }
 
