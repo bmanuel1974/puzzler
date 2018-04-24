@@ -1,7 +1,7 @@
 package org.manuel.puzzle.model
 
 import java.util.*
-
+//https://www.draw.io/#G1r0UGF2Xpmzd63b8t_vPR4Pe6KBGCfrNB
 class Puzzle(val centerRows: Int, val rowsFromCenter: Int, val preFilled: List<String>? = null) {
 
     var hexagonList: MutableList<MutableList<Hexagon>> = mutableListOf()
