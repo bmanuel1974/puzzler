@@ -5,8 +5,8 @@ class Puzzle(val centerRows: Int, val rowsFromCenter: Int, val preFilled: List<S
 
     var hexagonList: MutableList<MutableList<Hexagon>> = mutableListOf()
     var centerRow = rowsFromCenter
-    var maxState = CurrentState(mutableListOf())
-
+    var maxState: MutableMap<String, CurrentState> = mutableMapOf()
+    var possibleMoves = mutableListOf<String>()
     init {
 
         for (i in rowsFromCenter downTo 0) {
@@ -14,7 +14,11 @@ class Puzzle(val centerRows: Int, val rowsFromCenter: Int, val preFilled: List<S
             val rowList = arrayListOf<Hexagon>()
             for (row in 0..rows) {
                 val filled = preFilled != null && preFilled.contains("${hexagonList.size}$row")
-                rowList.add(Hexagon(hexagonList.size, row, filled))
+                val hex = Hexagon(hexagonList.size, row, filled)
+                rowList.add(hex)
+                if (!filled) {
+                    possibleMoves.add("$hex.row${hex.position}")
+                }
             }
 
             hexagonList.add(rowList)
@@ -25,7 +29,11 @@ class Puzzle(val centerRows: Int, val rowsFromCenter: Int, val preFilled: List<S
             val rowList = arrayListOf<Hexagon>()
             for (row in 0..rows) {
                 val filled = preFilled != null && preFilled.contains("${hexagonList.size}$row")
-                rowList.add(Hexagon(hexagonList.size, row, filled))
+                val hex = Hexagon(hexagonList.size, row, filled)
+                rowList.add(hex)
+                if (!filled) {
+                    possibleMoves.add("$hex.row${hex.position}")
+                }
             }
 
             hexagonList.add(rowList)
@@ -110,6 +118,8 @@ class Puzzle(val centerRows: Int, val rowsFromCenter: Int, val preFilled: List<S
                }
            }
         }
+//        val row = this.hexagonList[0][3]
+//            tryAllDirections(row, CurrentState(mutableListOf("${row.row}${row.position}")))
     }
 
     fun tryAllDirections(row: Hexagon, state: CurrentState) {
@@ -130,10 +140,14 @@ class Puzzle(val centerRows: Int, val rowsFromCenter: Int, val preFilled: List<S
             }
 
             this.maxState
-            if (newState.moves.size > this.maxState.moves.size) {
-               this.maxState = newState
+            val pathState = this.maxState.get(newState.moves[0])
+            if (pathState == null) {
+                this.maxState.put(newState.moves[0], newState)
+            } else {
+                if (newState.moves.size >  pathState.moves.size) {
+                    this.maxState.put(newState.moves[0], newState)
+                }
             }
-
         }
     }
 
@@ -164,10 +178,13 @@ fun main(args: Array<String>) {
 //    val puzzle = Puzzle(9, 4)
     val puzzle = Puzzle(9, 4, listOf("01", "02", "03", "14", "31", "70", "71", "82"))
     puzzle.hexagonList.map { println(it) }
+    println("possible moves: ${puzzle.possibleMoves.size}")
     puzzle.solve()
 
-    println(puzzle.maxState.moves)
 
+    puzzle.maxState.forEach { t, u ->
+       println("${u.moves.size} ${u.moves}")
+    }
 }
 
 
