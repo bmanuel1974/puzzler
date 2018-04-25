@@ -1,13 +1,9 @@
 buildscript {
     ext.kotlin_version = '1.2.21'
 
-  repositories {
-    maven { url 'http://artifactory.kroger.com/artifactory/plugins-release' }
-    maven { url 'http://artifactory.kroger.com/artifactory/libs-release' }
-    maven { url 'http://artifactory.kroger.com/artifactory/gradle-plugins' }
-  }
-
-
+repositories {
+        mavenCentral()
+}
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }

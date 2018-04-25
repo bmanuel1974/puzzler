@@ -1,13 +1,11 @@
 package org.manuel.puzzle.model
 
-import java.util.*
 //https://www.draw.io/#G1r0UGF2Xpmzd63b8t_vPR4Pe6KBGCfrNB
 class Puzzle(val centerRows: Int, val rowsFromCenter: Int, val preFilled: List<String>? = null) {
 
     var hexagonList: MutableList<MutableList<Hexagon>> = mutableListOf()
     var centerRow = rowsFromCenter
-    val random = Random()
-    val moves: MutableList<String> = arrayListOf()
+    var maxState = CurrentState(mutableListOf())
 
     init {
 
@@ -15,7 +13,7 @@ class Puzzle(val centerRows: Int, val rowsFromCenter: Int, val preFilled: List<S
             val rows = (centerRows -1) - i
             val rowList = arrayListOf<Hexagon>()
             for (row in 0..rows) {
-                val filled = preFilled != null && preFilled.contains("$i$row")
+                val filled = preFilled != null && preFilled.contains("${hexagonList.size}$row")
                 rowList.add(Hexagon(hexagonList.size, row, filled))
             }
 
@@ -26,264 +24,149 @@ class Puzzle(val centerRows: Int, val rowsFromCenter: Int, val preFilled: List<S
             val rows = (centerRows -1) - i
             val rowList = arrayListOf<Hexagon>()
             for (row in 0..rows) {
-                val filled = preFilled != null && preFilled.contains("$i$row")
+                val filled = preFilled != null && preFilled.contains("${hexagonList.size}$row")
                 rowList.add(Hexagon(hexagonList.size, row, filled))
             }
 
             hexagonList.add(rowList)
         }
-    }
 
-    fun moveToPosition(direction: Int, currentHexagon: Hexagon): Hexagon? {
-        //this one is already full
-
-        //Can't move up on first row
-        if (isFirstRow(currentHexagon) && isMovingUp(direction)) {
-            return null
+        for((listIndex, list) in hexagonList.withIndex()) {
+               for((rowIndex, row) in list.withIndex())  {
+                  setSides(listIndex, rowIndex)
+                   setTopAndBottom(listIndex, rowIndex)
+               }
         }
 
-        //can't move down if we are currently on the last row
-        if (isLastRow(currentHexagon) && isMovingDown(direction)) {
-            return null
-        }
-
-        //can't move left if we are currently on the first element
-        if (currentHexagon.position == 0 && isMovingLeft(direction)) {
-            return null
-        }
-
-        //can't move left if we are currently on the first element
-        if (isLastElementInRow(currentHexagon) && isMovingRight(direction)) {
-            return null
-        }
-
-        try {
-            if (currentHexagon.row <= centerRow && isMovingUp(direction)) {
-                if (direction == 1 && !this.hexagonList[currentHexagon.row - 1][currentHexagon.position - 1].filled) {
-                    return this.hexagonList[currentHexagon.row - 1][currentHexagon.position - 1]
-                }
-                if (direction == 2 && !this.hexagonList[currentHexagon.row - 1][currentHexagon.position].filled) {
-                    return this.hexagonList[currentHexagon.row - 1][currentHexagon.position]
-                }
-            }
-
-            if (currentHexagon.row < centerRow && isMovingDown(direction)) {
-                if (direction == 4 && !this.hexagonList[currentHexagon.row + 1][currentHexagon.position + 1].filled) {
-                    return this.hexagonList[currentHexagon.row + 1][currentHexagon.position + 1]
-                }
-                if (direction == 5 && !this.hexagonList[currentHexagon.row + 1][currentHexagon.position].filled) {
-                    return this.hexagonList[currentHexagon.row + 1][currentHexagon.position]
-                }
-            }
-
-            if (currentHexagon.row >= centerRow && isMovingDown(direction)) {
-                if (direction == 4 && !this.hexagonList[currentHexagon.row + 1][currentHexagon.position].filled) {
-                    return this.hexagonList[currentHexagon.row + 1][currentHexagon.position]
-                }
-                if (direction == 5 && !this.hexagonList[currentHexagon.row + 1][currentHexagon.position - 1].filled) {
-                    return this.hexagonList[currentHexagon.row + 1][currentHexagon.position - 1]
-                }
-            }
-
-            if (currentHexagon.row > centerRow && isMovingUp(direction)) {
-                if (direction == 1 && !this.hexagonList[currentHexagon.row - 1][currentHexagon.position].filled) {
-                    return this.hexagonList[currentHexagon.row - 1][currentHexagon.position]
-                }
-                if (direction == 2 && !this.hexagonList[currentHexagon.row - 1][currentHexagon.position + 1].filled) {
-                    return this.hexagonList[currentHexagon.row - 1][currentHexagon.position + 1]
-                }
-            }
-
-            if (isMovingLeft(direction)) {
-                if (!hexagonList[currentHexagon.row][currentHexagon.position - 1].filled) {
-                    return hexagonList[currentHexagon.row][currentHexagon.position - 1]
-                }
-            }
-            if (isMovingRight(direction)) {
-                if (!hexagonList[currentHexagon.row][currentHexagon.position + 1].filled) {
-                    return hexagonList[currentHexagon.row][currentHexagon.position + 1]
-                }
-            }
-        } catch (e: Exception) {
-
-        }
-
-
-
-        return null
+        println(hexagonList)
 
     }
 
-    private fun isLastElementInRow(currentHexagon: Hexagon): Boolean {
-        return this.hexagonList[currentHexagon.position].size == currentHexagon.position
+    fun setTopAndBottom(row: Int, position: Int) {
+        val current = hexagonList[row][position]
+       if (row < centerRow) {
+          val oneSide = try {hexagonList[row-1][position -1]} catch (e: Exception)  {null}
+          val twoSide = try {hexagonList[row-1][position]} catch (e: Exception)  {null}
+          val fourSide = try {hexagonList[row+1][position+1]} catch (e: Exception)  {null}
+          val fiveSide = try {hexagonList[row+1][position]} catch (e: Exception)  {null}
+           current.also {
+               it.oneSide = oneSide?.apply { FourSide = current}
+               it.TwoSide = twoSide?.apply { FiveSide = current }
+               it.FourSide = fourSide?.apply { this.oneSide = current}
+               it.FiveSide = fiveSide?.apply {TwoSide = current}
+           }
+
+       } else if (row == centerRow) {
+              val oneSide = try {hexagonList[row-1][position -1]} catch (e: Exception)  {null}
+              val twoSide = try {hexagonList[row-1][position]} catch (e: Exception)  {null}
+              val fourSide = try {hexagonList[row+1][position]} catch (e: Exception)  {null}
+              val fiveSide = try {hexagonList[row+1][position-1]} catch (e: Exception)  {null}
+               current.also {
+                   it.oneSide = oneSide?.apply { FourSide = current}
+                   it.TwoSide = twoSide?.apply { FiveSide = current }
+                   it.FourSide = fourSide?.apply { this.oneSide = current}
+                   it.FiveSide = fiveSide?.apply {TwoSide = current}
+               }
+
+       } else {
+              val oneSide = try {hexagonList[row-1][position]} catch (e: Exception)  {null}
+              val twoSide = try {hexagonList[row-1][position+1]} catch (e: Exception)  {null}
+              val fourSide = try {hexagonList[row+1][position]} catch (e: Exception)  {null}
+              val fiveSide = try {hexagonList[row+1][position-1]} catch (e: Exception)  {null}
+               current.also {
+                   it.oneSide = oneSide?.apply { FourSide = current}
+                   it.TwoSide = twoSide?.apply { FiveSide = current }
+                   it.FourSide = fourSide?.apply { this.oneSide = current}
+                   it.FiveSide = fiveSide?.apply {TwoSide = current}
+               }
+       }
+
     }
 
-    fun isFirstRow(currentHexagon: Hexagon) = currentHexagon.row == 0
+    fun setSides(row: Int, position: Int) {
+        val current = try {this.hexagonList[row][position]} catch (e: Exception) {null}
+        val leftOf = try {this.hexagonList[row][position-1]} catch (e: Exception) {null}
+        val rightOf = try {this.hexagonList[row][position+1]} catch (e: Exception) {null}
 
-
-    fun isMovingUp(direction: Int): Boolean {
-        return when (direction) {
-            1 -> true
-            2 -> true
-            else -> false
-        }
-    }
-
-    fun isMovingDown(direction: Int): Boolean {
-        return when (direction) {
-            4 -> true
-            5 -> true
-            else -> false
-        }
-    }
-
-    fun isMovingLeft(direction: Int): Boolean {
-        return direction == 6
-    }
-
-    fun isMovingRight(direction: Int): Boolean {
-        return direction == 3
-    }
-
-    fun isLastRow(currentHexagon: Hexagon): Boolean {
-        return (currentHexagon.row == hexagonList.size)
-    }
-
-    fun isSolved(): Boolean {
-        var solved = true
-        this.hexagonList.map {
-            it.map { if (!it.filled) solved = false }
-        }
-
-        return solved
-    }
-
-    fun spotsOpen(): Int {
-        var count = 0
-        var available = 0
-        this.hexagonList.forEach {
-            it.forEach {
-                if (it.filled) {
-                    count++
-                }
-                available++
-            }
+        current?.also {
+           it.SixSide = leftOf
+           it.ThreeSide = rightOf
         }
 
-        return available - count
-    }
-
-    fun reset() {
-
-        hexagonList.forEach {
-            it.forEach {
-                if (this.preFilled != null && preFilled.contains("${it.row}${it.position}")) {
-
-                } else {
-                    it.filled = false
-                }
-            }
+        leftOf?.also {
+           it.ThreeSide = current
         }
 
+        rightOf?.also {
+           it.SixSide = current
+        }
     }
 
     fun solve() {
+        this.hexagonList.forEach { list ->
+           list.forEach { row ->
+               if (!row.preFilled) {
+                   tryAllDirections(row, CurrentState(mutableListOf("${row.row}${row.position}")))
+               }
+           }
+        }
+    }
 
-        var currentHexagon: Hexagon = randomHexagonNotFilled()
-        currentHexagon.filled = true
+    fun tryAllDirections(row: Hexagon, state: CurrentState) {
+        for (direction in 1..6) {
+            val list = mutableListOf<String>()
+            list.addAll(state.moves)
 
-        var directionsTried = mutableMapOf(1 to false, 2 to false, 3 to false, 4 to false, 5 to false, 6 to false)
-        while (true) {
-
-            if (!triedAllDirections(directionsTried)) {
-                val direction = randomDirectionNotTried(directionsTried)
-
-                var moveTo = this.moveToPosition(direction, currentHexagon)
-
-                if (moveTo != null) {
-                    do {
-                        if (moveTo != null) {
-                            moveTo.filled = true
-                            moves.add("R${moveTo.row}P${moveTo.position}-D$direction")
-                            currentHexagon = moveTo
-                            moveTo = this.moveToPosition(direction, currentHexagon)
-                        }
-                    } while(moveTo != null)
-
-                    directionsTried = mutableMapOf(1 to false, 2 to false, 3 to false, 4 to false, 5 to false, 6 to false)
-                }
-
+            val newState = CurrentState(list)
+            var current = followDirection(row, direction, newState)
+            var prev: Hexagon? = null
+            while ( current != null) {
+               prev = current
+               current = followDirection(current, direction, newState)
             }
 
-            if (this.isSolved()) {
-                println("solved!")
-                println(moves)
-                return
+            if (prev != null) {
+                tryAllDirections(prev, newState)
             }
 
-            if (!this.isSolved() && triedAllDirections(directionsTried) || this.isSolved()) {
-                if (spotsOpen() < 9) {
-                    println("starting over [moves=${moves.size}][spots open=${spotsOpen()}")
-                    println("     ${moves}")
-                }
-
-                this.reset()
-                directionsTried = mutableMapOf(1 to false, 2 to false, 3 to false, 4 to false, 5 to false, 6 to false)
-
-
-                currentHexagon = randomHexagonNotFilled()
-                currentHexagon.filled = true
+            this.maxState
+            if (newState.moves.size > this.maxState.moves.size) {
+               this.maxState = newState
             }
+
+        }
+    }
+
+    fun followDirection(current: Hexagon, direction: Int, state: CurrentState): Hexagon? {
+        var move: Hexagon? = current
+
+          when (direction) {
+            1 -> {move = current.oneSide}
+            2 -> {move = current.TwoSide}
+            3 -> {move = current.ThreeSide}
+            4 -> {move = current.FourSide}
+            5 -> {move = current.FiveSide}
+            6 -> {move = current.SixSide}
         }
 
+        if (move != null && move != current
+                && !state.moves.contains("${move.row}${move.position}")
+                && !move.preFilled) {
 
-    }
-
-    fun randomHexagonNotFilled(): Hexagon {
-        moves.clear()
-        var rowStart = randNum(0, this.hexagonList.size)
-        var row = this.hexagonList[rowStart]
-        var position = randNum(0, row.size)
-        while (!isFilled(rowStart, position)) {
-            rowStart = randNum(0, this.hexagonList.size)
-            row = this.hexagonList[rowStart]
-            position = randNum(0, row.size)
+            state.moves.add("${move.row}${move.position}")
+            return move
         }
-
-        moves.add("R${rowStart}P$position")
-        return row[position]
-    }
-
-    fun isFilled(row: Int, position: Int): Boolean {
-        return this.preFilled != null && preFilled.contains("${row}${position}")
-    }
-
-    fun randomDirectionNotTried(directions: MutableMap<Int, Boolean>): Int {
-        val tryInt = randNum(1, 7)
-        if (directions.getOrDefault(tryInt, false)) {
-            return randomDirectionNotTried(directions)
-        }
-
-        directions[tryInt] = true
-        return tryInt
-    }
-
-    fun triedAllDirections(directions: Map<Int, Boolean>): Boolean {
-        return directions.filter { it.value == true }.size == 6
-    }
-
-    fun randNum(from: Int, to: Int): Int {
-        return random.nextInt(to - from) + from
+        return null
     }
 }
 
 fun main(args: Array<String>) {
 //    val puzzle = Puzzle(9, 4)
     val puzzle = Puzzle(9, 4, listOf("01", "02", "03", "14", "31", "70", "71", "82"))
-
     puzzle.hexagonList.map { println(it) }
     puzzle.solve()
 
+    println(puzzle.maxState.moves)
 
 }
 
